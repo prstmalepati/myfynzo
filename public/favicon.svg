@@ -1,6 +1,8 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
-  <!-- Circle with opening at top-right like the actual logo -->
-  <path d="M 85 30 A 40 40 0 1 0 62 12" fill="none" stroke="#2B9F93" stroke-width="7" stroke-linecap="round"/>
-  <!-- Stylized serif f -->
-  <text x="50" y="72" text-anchor="middle" font-family="Georgia, 'Times New Roman', serif" font-size="64" font-style="italic" font-weight="400" fill="#2B9F93">f</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- Outer circle ring -->
+  <circle cx="256" cy="256" r="220" fill="none" stroke="#2B9F93" stroke-width="42"/>
+  <!-- Heart/V notch at top (gap in circle) -->
+  <path d="M 256 36 L 220 95 A 220 220 0 0 1 292 95 Z" fill="white"/>
+  <!-- Stylized serif lowercase f -->
+  <text x="256" y="370" text-anchor="middle" font-family="Georgia, 'Times New Roman', serif" font-size="320" font-weight="400" fill="#2B9F93">f</text>
 </svg>
