@@ -14,11 +14,13 @@ export interface UserDataExport {
   monthlyInvestments: Record<string, unknown>[];
   goals: Record<string, unknown>[];
   debts: Record<string, unknown>[];
+  incomes: Record<string, unknown>[];
   lifestyleBasket: Record<string, unknown>[];
   cashSavings: Record<string, unknown>[];
   physicalAssets: Record<string, unknown>[];
   scenarios: Record<string, unknown>[];
   antiPortfolio: Record<string, unknown>[];
+  netWorthSnapshots: Record<string, unknown>[];
   projections: Record<string, unknown> | null;
 }
 
@@ -27,11 +29,13 @@ const SUBCOLLECTIONS = [
   'monthlyInvestments',
   'goals',
   'debts',
+  'incomes',
   'lifestyleBasket',
   'cashSavings',
   'physicalAssets',
   'scenarios',
   'anti_portfolio',
+  'netWorthSnapshots',
 ] as const;
 
 export async function exportUserData(uid: string): Promise<UserDataExport> {
@@ -66,17 +70,19 @@ export async function exportUserData(uid: string): Promise<UserDataExport> {
 
   return {
     exportDate: new Date().toISOString(),
-    exportVersion: '1.0',
+    exportVersion: '1.1',
     profile: safeProfile,
     investments: data.investments || [],
     monthlyInvestments: data.monthlyInvestments || [],
     goals: data.goals || [],
     debts: data.debts || [],
+    incomes: data.incomes || [],
     lifestyleBasket: data.lifestyleBasket || [],
     cashSavings: data.cashSavings || [],
     physicalAssets: data.physicalAssets || [],
     scenarios: data.scenarios || [],
     antiPortfolio: data.anti_portfolio || [],
+    netWorthSnapshots: data.netWorthSnapshots || [],
     projections: projSnap?.exists() ? projSnap.data() ?? null : null,
   };
 }

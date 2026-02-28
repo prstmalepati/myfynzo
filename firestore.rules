@@ -96,10 +96,15 @@ service cloud.firestore {
     }
 
     // ─── System config ──────────────────────────────────────
+    // SECURITY FIX: api_keys is ADMIN-ONLY — contains TwelveData,
+    // Anthropic API keys. All API key usage goes through Cloud Functions.
+    match /system/api_keys {
+      allow read, write: if isAdmin();
+    }
+
+    // Other system documents: readable by authenticated users
     match /system/{document} {
-      // All authenticated users can read (needed for exchange rates, API keys check)
-      allow read: if request.auth != null;
-      // Only admins can write (API keys, exchange rates, config)
+      allow read: if request.auth != null && document != 'api_keys';
       allow write: if isAdmin();
     }
 

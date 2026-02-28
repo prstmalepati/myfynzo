@@ -63,22 +63,14 @@ async function setCachedPrice(price: MarketPrice): Promise<void> {
 }
 
 // ─── Twelve Data (primary) ────────────────────────────────────
-// API key stored in Firestore system config or env
+// SECURITY: API key is read from env var only (for dev mode).
+// In production, all price fetching should go through Cloud Functions.
+// The client NEVER reads system/api_keys from Firestore.
 async function getApiKey(): Promise<string> {
-  try {
-    const snap = await getDoc(doc(db, 'system', 'api_keys'));
-    if (snap.exists()) {
-      const key = snap.data().twelveData || '';
-      if (key) return key;
-      console.warn('[MarketData] system/api_keys exists but twelveData field is empty');
-    } else {
-      console.warn('[MarketData] system/api_keys document not found in Firestore');
-    }
-  } catch (err) {
-    console.warn('[MarketData] Failed to read api_keys from Firestore:', err);
-  }
   const envKey = import.meta.env.VITE_TWELVE_DATA_KEY || '';
-  if (!envKey) console.warn('[MarketData] No VITE_TWELVE_DATA_KEY env var either. Price fetching disabled.');
+  if (!envKey) {
+    console.warn('[MarketData] No VITE_TWELVE_DATA_KEY env var. Client-side TwelveData disabled. Prices will use Cloud Function or Yahoo fallback.');
+  }
   return envKey;
 }
 
