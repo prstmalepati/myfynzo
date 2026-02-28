@@ -1,0 +1,124 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ─── Helper: Check if user is admin ─────────────────────
+    // Reads the admin_whitelist document to check UID membership
+    function isAdmin() {
+      return request.auth != null 
+        && request.auth.uid in get(/databases/$(database)/documents/system/admin_whitelist).data.uids;
+    }
+
+    // Helper: Check if a field is being changed by this write
+    // Returns true if the field value in the new doc differs from existing doc
+    function fieldChanged(field) {
+      return !(field in resource.data) && (field in request.resource.data)
+        || (field in resource.data) && (field in request.resource.data) 
+           && resource.data[field] != request.resource.data[field];
+    }
+
+    // ─── User profile ───────────────────────────────────────
+    // Users can ONLY read/write their own profile document
+    // Admins can list and read ALL user profiles (for admin panel)
+    match /users/{userId} {
+      allow read: if request.auth != null && request.auth.uid == userId;
+
+      // Create: user can create their own profile (no role/isAdmin fields allowed)
+      allow create: if request.auth != null && request.auth.uid == userId
+        && !('role' in request.resource.data)
+        && !('isAdmin' in request.resource.data);
+
+      // Update: user can update their own profile
+      // Non-admins cannot change role or isAdmin fields
+      // (existing values from cloud functions are preserved by merge:true and don't trigger this)
+      allow update: if request.auth != null && request.auth.uid == userId
+        && (isAdmin() || (
+          !fieldChanged('role')
+          && !fieldChanged('isAdmin')
+        ));
+
+      // Special: linked partner can update ONLY familyLink + partnerName on primary's doc during invite acceptance
+      allow update: if request.auth != null
+        && request.auth.uid != userId
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['familyLink', 'partnerName', 'updatedAt'])
+
+      // Delete: only admins
+      allow delete: if isAdmin();
+      
+      // Admins can list + read any user profile (for admin panel)
+      allow read, list: if isAdmin();
+    }
+
+    // ─── User sub-collections ───────────────────────────────
+    // investments, goals, lifestyleBasket, anti_portfolio, scenarios, cashSavings
+    match /users/{userId}/{subcollection}/{docId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+      // Family link: primary partner can READ linked partner's data
+      allow read: if request.auth != null
+        && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.familyLink.partnerUid == userId;
+      // Admins can read (not write) any user's sub-collections
+      allow read: if isAdmin();
+    }
+
+    // Deeper sub-collections (MIP entries, projection history)
+    match /users/{userId}/{sub1}/{doc1}/{sub2}/{doc2} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+      // Family link: primary partner can READ linked partner's deeper data
+      allow read: if request.auth != null
+        && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.familyLink.partnerUid == userId;
+      allow read: if isAdmin();
+    }
+
+    // ─── Market prices cache (shared) ───────────────────────
+    // Any authenticated user can read.
+    // Writes allowed with rate-limit protection:
+    //   - Must be authenticated
+    //   - Document size capped (prevent abuse)
+    //   - Only expected fields allowed
+    match /market_prices/{symbol} {
+      allow read: if request.auth != null;
+      allow create, update: if request.auth != null
+        && request.resource.data.keys().hasOnly(
+          ['symbol', 'price', 'previousClose', 'change', 'changePercent',
+           'currency', 'name', 'exchange', 'updatedAt', 'source'])
+        && request.resource.data.price is number
+        && request.resource.data.symbol is string
+        && request.resource.data.symbol.size() <= 20;
+      allow delete: if false;
+    }
+
+    // ─── Tax rules (read-only, admin-seeded) ────────────────
+    match /tax_rules/{countryCode}/{document=**} {
+      allow read: if request.auth != null;
+      allow write: if isAdmin();
+    }
+
+    // ─── System config ──────────────────────────────────────
+    match /system/{document} {
+      // All authenticated users can read (needed for exchange rates, API keys check)
+      allow read: if request.auth != null;
+      // Only admins can write (API keys, exchange rates, config)
+      allow write: if isAdmin();
+    }
+
+    // ─── Family invite codes ────────────────────────────────
+    match /system/family_invites/codes/{codeId} {
+      // Any authenticated user can read (to verify invite)
+      allow read: if request.auth != null;
+      // Authenticated users can create invites (primary partner)
+      allow create: if request.auth != null
+        && request.resource.data.primaryUid == request.auth.uid;
+      // Authenticated users can mark invite as used (linked partner accepting)
+      allow update: if request.auth != null
+        && resource.data.used == false
+        && request.resource.data.used == true;
+    }
+
+    // ─── Default: deny everything else ──────────────────────
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

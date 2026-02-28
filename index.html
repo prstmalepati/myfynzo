@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    
+    <!-- Favicon & App Icons -->
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
+    <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/site.webmanifest" />
+    <meta name="theme-color" content="#0f766e" />
+    
+    <!-- Security -->
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="referrer" content="strict-origin-when-cross-origin" />
+    
+    <!-- SEO Meta -->
+    <title>myfynzo — Your Wealth. AI-Guided.</title>
+    <meta name="description" content="myfynzo is a premium wealth management platform. Track investments, plan lifestyle goals, run FIRE calculations, and take control of your financial future." />
+    <meta name="keywords" content="wealth management, investment tracker, FIRE calculator, financial planning, net worth tracker, lifestyle inflation" />
+    
+    <!-- Open Graph / Social -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://www.myfynzo.com/" />
+    <meta property="og:title" content="myfynzo — Your Wealth, Your Way" />
+    <meta property="og:description" content="Premium wealth management platform. Track investments, plan lifestyle goals, and take control of your financial future." />
+    <meta property="og:image" content="https://www.myfynzo.com/android-chrome-512x512.png" />
+    <meta property="og:site_name" content="myfynzo" />
+    
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="myfynzo — Your Wealth, Your Way" />
+    <meta name="twitter:description" content="Premium wealth management platform for your financial future." />
+    <meta name="twitter:image" content="https://www.myfynzo.com/android-chrome-512x512.png" />
+    
+    <!-- Fonts — loaded once here, not per-component -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&display=swap" />
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet" />
+  </head>
+  <body class="antialiased">
+    <!-- Prevent FOUC: hide root until styles are parsed -->
+    <style>
+      #root:empty { display: none; }
+      #app-splash { position: fixed; inset: 0; z-index: 9999; background: #f8fafc; display: flex; align-items: center; justify-content: center; flex-direction: column; transition: opacity .25s ease-out; }
+      #app-splash.hide { opacity: 0; pointer-events: none; }
+      @keyframes sp-pulse { 0%,100%{opacity:.4} 50%{opacity:.85} }
+      #app-splash img { opacity: .6; animation: sp-pulse 1.8s ease-in-out infinite; }
+    </style>
+    <div id="app-splash">
+      <img src="/logo-transparent.png" alt="" width="52" height="52" />
+      <p id="splash-msg" style="display:none;margin-top:16px;font-family:system-ui;font-size:13px;color:#94a3b8;">Taking longer than expected. <a href="/" style="color:#0f766e;text-decoration:underline;">Refresh</a></p>
+    </div>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+    <script>
+      // Remove splash once React renders meaningful content
+      function removeSplash() {
+        var s = document.getElementById('app-splash');
+        if (s) { s.classList.add('hide'); setTimeout(function() { s.remove(); }, 300); }
+      }
+      // Watch for React mount
+      var _ro = new MutationObserver(function() {
+        var r = document.getElementById('root');
+        if (r && r.children.length > 0) { removeSplash(); _ro.disconnect(); }
+      });
+      _ro.observe(document.getElementById('root'), { childList: true });
+      // Safety: remove after 3s no matter what
+      setTimeout(removeSplash, 3000);
+      // Show fallback message if still loading after 5s
+      setTimeout(function() {
+        var m = document.getElementById('splash-msg');
+        if (m) m.style.display = 'block';
+      }, 5000);
+    </script>
+  </body>
+</html>

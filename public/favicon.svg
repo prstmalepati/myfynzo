@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <!-- Circle with opening at top-right like the actual logo -->
+  <path d="M 85 30 A 40 40 0 1 0 62 12" fill="none" stroke="#2B9F93" stroke-width="7" stroke-linecap="round"/>
+  <!-- Stylized serif f -->
+  <text x="50" y="72" text-anchor="middle" font-family="Georgia, 'Times New Roman', serif" font-size="64" font-style="italic" font-weight="400" fill="#2B9F93">f</text>
+</svg>
