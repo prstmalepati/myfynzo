@@ -41,7 +41,7 @@ export default function WealthProjection() {
   usePageTitle('Wealth Projection');
   const { formatAmount, currency } = useCurrency();
   const { isFamily, activeProfile, isHouseholdView, isPartnerView, partnerName, partnerUid } = usePartner();
-  const { isCouples, isFree, limits } = useTier();
+  const { isPremium, isCouples, isFree, limits } = useTier();
   const { t } = useLocale();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
