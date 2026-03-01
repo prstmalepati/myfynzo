@@ -846,6 +846,20 @@ export default function Dashboard() {
           <span className="text-slate-200">|</span>
           <div className="flex items-center gap-1.5"><span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" /><span className="text-[10px] text-slate-400 font-medium">GDPR compliant</span></div>
         </Link>
+
+        {/* Footer Links */}
+        <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 mt-4 mb-2">
+          {[
+            { to: '/blog', label: 'Blog' },
+            { to: '/about', label: 'About' },
+            { to: '/security', label: 'Security' },
+            { to: '/impressum', label: 'Impressum' },
+            { to: '/privacy', label: 'Privacy' },
+          ].map(l => (
+            <Link key={l.to} to={l.to} className="text-[10px] text-slate-300 hover:text-primary transition-colors">{l.label}</Link>
+          ))}
+          <span className="text-[10px] text-slate-200">© 2026 myfynzo</span>
+        </div>
       </div>
     </SidebarLayout>
   );

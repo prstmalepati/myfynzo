@@ -87,8 +87,8 @@ export default function App() {
                       {/* Country-gated — India & Germany only */}
                       <Route path="/login" element={<CountryGate mode="signup"><Login /></CountryGate>} />
                       <Route path="/signup" element={<CountryGate mode="signup"><Signup /></CountryGate>} />
-                      <Route path="/blog" element={<CountryGate mode="page"><Blog /></CountryGate>} />
-                      <Route path="/blog/:slug" element={<CountryGate mode="page"><BlogPost /></CountryGate>} />
+                      <Route path="/blog" element={<Blog />} />
+                      <Route path="/blog/:slug" element={<BlogPost />} />
 
                       {/* Protected Routes — requires auth + country access */}
                       <Route path="/dashboard" element={<CountryGate mode="page"><ProtectedRoute><Dashboard /></ProtectedRoute></CountryGate>} />
