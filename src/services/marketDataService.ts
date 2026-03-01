@@ -254,7 +254,40 @@ export async function fetchLivePrice(symbol: string, forceRefresh = false, excha
   const stock = await fetchFromTwelveData(sym, exchange, expectedName);
   if (stock) { console.log(`[Price] ${sym}: fetched from Twelve Data → ${stock.price}`); await setCachedPrice(stock); return stock; }
 
-  // 5. Try crypto as last resort
+  // 5. Yahoo Finance fallback (no key needed)
+  try {
+    const yahooSym = exchange && /xetr|frankfurt|fwb/i.test(exchange) ? `${sym}.DE` :
+                     exchange && /nse|national stock/i.test(exchange) ? `${sym}.NS` :
+                     exchange && /bse|bombay/i.test(exchange) ? `${sym}.BO` :
+                     exchange && /lse|london/i.test(exchange) ? `${sym}.L` :
+                     exchange && /euronext.*paris|epa/i.test(exchange) ? `${sym}.PA` :
+                     exchange && /euronext.*amsterdam|ams/i.test(exchange) ? `${sym}.AS` :
+                     sym;
+    const yRes = await fetch(`https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(yahooSym)}?interval=1d&range=2d`);
+    if (yRes.ok) {
+      const yData = await yRes.json();
+      const result = yData?.chart?.result?.[0];
+      if (result) {
+        const meta = result.meta;
+        const quotes = result.indicators?.quote?.[0];
+        const lastClose = quotes?.close?.filter((c: any) => c != null).pop() || meta.regularMarketPrice;
+        if (lastClose) {
+          const prevClose = meta.chartPreviousClose || meta.previousClose || lastClose;
+          const mp: MarketPrice = {
+            symbol: sym, price: lastClose, previousClose: prevClose,
+            change: lastClose - prevClose, changePercent: prevClose > 0 ? ((lastClose - prevClose) / prevClose) * 100 : 0,
+            currency: meta.currency || 'USD', name: expectedName || meta.symbol || sym,
+            exchange: meta.exchangeName || exchange || '', updatedAt: new Date(), source: 'yahoo',
+          };
+          console.log(`[Price] ${sym}: fetched from Yahoo → ${mp.price}`);
+          await setCachedPrice(mp);
+          return mp;
+        }
+      }
+    }
+  } catch {}
+
+  // 6. Try crypto as last resort
   const cryptoFallback = await fetchFromCoinGecko(sym);
   if (cryptoFallback) { console.log(`[Price] ${sym}: fetched from CoinGecko → ${cryptoFallback.price}`); await setCachedPrice(cryptoFallback); return cryptoFallback; }
 
@@ -342,14 +375,28 @@ export async function searchSymbols(query: string): Promise<SymbolResult[]> {
   // If ISIN detected and no results, try searching by ISIN via symbol lookup
   let isinResults: SymbolResult[] = [];
   if (isISIN && twelveResults.length === 0) {
-    // Twelve Data symbol_search also supports ISIN; retry with explicit filter
     isinResults = await searchTwelveData(query.trim().toUpperCase());
+  }
+
+  // Yahoo Finance fallback — if TwelveData returned few results
+  let yahooResults: SymbolResult[] = [];
+  if (twelveResults.length < 3 && !isISIN) {
+    yahooResults = await searchYahooFinance(query);
   }
 
   // Combine: Indian MFs first if query looks Indian, otherwise Twelve Data first
   const isIndianQuery = /mutual|fund|nifty|sensex|sbi|hdfc|icici|axis|kotak|nippon|mirae|parag/i.test(query);
-  let combined = isIndianQuery ? [...mfResults, ...twelveResults, ...isinResults] : [...twelveResults, ...isinResults, ...mfResults];
+  let combined = isIndianQuery ? [...mfResults, ...twelveResults, ...yahooResults, ...isinResults] : [...twelveResults, ...yahooResults, ...isinResults, ...mfResults];
   
+  // Deduplicate by symbol+exchange
+  const seen = new Set<string>();
+  combined = combined.filter(r => {
+    const key = `${r.symbol}|${r.exchange}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+
   // Smart ranking: relevance first, then exchange preference
   const q = query.trim().toLowerCase();
   const eurIndExchanges = /xetra|frankfurt|fwb|etr|euronext|lse|paris|milan|amsterdam|tradegate|nse|bse|bombay|national stock/i;
@@ -382,6 +429,48 @@ export async function searchSymbols(query: string): Promise<SymbolResult[]> {
   });
   
   return combined.slice(0, 15);
+}
+
+async function searchYahooFinance(query: string): Promise<SymbolResult[]> {
+  if (!query || query.trim().length < 2) return [];
+  try {
+    const res = await fetch(
+      `https://query1.finance.yahoo.com/v1/finance/search?q=${encodeURIComponent(query)}&quotesCount=10&newsCount=0&enableFuzzyQuery=true&quotesQueryId=tss_match_phrase_query`
+    );
+    if (!res.ok) return [];
+    const data = await res.json();
+    if (!data.quotes || !Array.isArray(data.quotes)) return [];
+    return data.quotes
+      .filter((q: any) => q.symbol && (q.quoteType === 'EQUITY' || q.quoteType === 'ETF' || q.quoteType === 'MUTUALFUND'))
+      .slice(0, 10)
+      .map((q: any) => {
+        // Strip Yahoo suffix for clean symbol (.DE, .NS, .L, etc.)
+        let cleanSymbol = q.symbol;
+        let exchange = q.exchange || q.exchDisp || '';
+        if (cleanSymbol.includes('.')) {
+          const suffix = cleanSymbol.split('.').pop();
+          const suffixMap: Record<string, string> = {
+            'DE': 'XETRA', 'F': 'Frankfurt', 'NS': 'NSE', 'BO': 'BSE',
+            'L': 'LSE', 'PA': 'Euronext Paris', 'AS': 'Euronext Amsterdam',
+            'MI': 'Milan', 'SW': 'SIX Swiss', 'TO': 'TSX',
+          };
+          if (suffixMap[suffix || '']) {
+            exchange = suffixMap[suffix || ''] || exchange;
+            cleanSymbol = cleanSymbol.replace(`.${suffix}`, '');
+          }
+        }
+        return {
+          symbol: cleanSymbol,
+          instrument_name: q.shortname || q.longname || q.symbol,
+          exchange,
+          country: '',
+          type: q.quoteType === 'ETF' ? 'ETF' : q.quoteType === 'MUTUALFUND' ? 'Mutual Fund' : 'Common Stock',
+          currency: q.currency || 'USD',
+        };
+      });
+  } catch {
+    return [];
+  }
 }
 
 async function searchTwelveData(query: string): Promise<SymbolResult[]> {
@@ -513,33 +602,71 @@ export async function fetchPriceOnDate(symbol: string, date: string, exchange?: 
     return await fetchIndianMFNavOnDate(schemeCode, date);
   }
 
+  // Try Twelve Data first
   const apiKey = await getApiKey();
-  if (!apiKey) return null;
-  try {
-    // Build exchange param
-    const exParam = exchange ? `&exchange=${encodeURIComponent(exchange)}` : '';
-    const res = await fetch(
-      `https://api.twelvedata.com/time_series?symbol=${encodeURIComponent(symbol)}&interval=1day&start_date=${date}&end_date=${date}${exParam}&apikey=${apiKey}`
-    );
-    if (!res.ok) return null;
-    const data = await res.json();
-    if (data.values && data.values.length > 0) {
-      return parseFloat(data.values[0].close);
-    }
-    // If exact date not found (weekend/holiday), try a few days back
-    const dt = new Date(date);
-    dt.setDate(dt.getDate() - 5);
-    const startBack = dt.toISOString().split('T')[0];
-    const res2 = await fetch(
-      `https://api.twelvedata.com/time_series?symbol=${encodeURIComponent(symbol)}&interval=1day&start_date=${startBack}&end_date=${date}&outputsize=5${exParam}&apikey=${apiKey}`
-    );
-    if (!res2.ok) return null;
-    const data2 = await res2.json();
-    if (data2.values && data2.values.length > 0) {
-      return parseFloat(data2.values[0].close);
-    }
-    return null;
-  } catch {
-    return null;
+  if (apiKey) {
+    try {
+      const exParam = exchange ? `&exchange=${encodeURIComponent(exchange)}` : '';
+      // Look back 10 days from target date to handle weekends + holidays
+      const dt = new Date(date);
+      const startBack = new Date(dt);
+      startBack.setDate(startBack.getDate() - 10);
+      const startStr = startBack.toISOString().split('T')[0];
+      const res = await fetch(
+        `https://api.twelvedata.com/time_series?symbol=${encodeURIComponent(symbol)}&interval=1day&start_date=${startStr}&end_date=${date}&outputsize=10${exParam}&apikey=${apiKey}`
+      );
+      if (res.ok) {
+        const data = await res.json();
+        if (data.values && data.values.length > 0) {
+          // Values are sorted newest-first, so first entry is closest to target date
+          return parseFloat(data.values[0].close);
+        }
+      }
+      // If exchange-qualified fails, retry without exchange
+      if (exchange) {
+        const res2 = await fetch(
+          `https://api.twelvedata.com/time_series?symbol=${encodeURIComponent(symbol)}&interval=1day&start_date=${startStr}&end_date=${date}&outputsize=10&apikey=${apiKey}`
+        );
+        if (res2.ok) {
+          const data2 = await res2.json();
+          if (data2.values && data2.values.length > 0) {
+            return parseFloat(data2.values[0].close);
+          }
+        }
+      }
+    } catch {}
   }
+
+  // Fallback: Yahoo Finance v8 chart API (no key needed)
+  try {
+    const targetTs = Math.floor(new Date(date).getTime() / 1000);
+    const fromTs = targetTs - 10 * 86400; // 10 days before
+    const toTs = targetTs + 86400; // 1 day after
+    const yahooSym = exchange && /xetr|frankfurt|fwb/i.test(exchange) ? `${symbol}.DE` :
+                     exchange && /nse|national stock/i.test(exchange) ? `${symbol}.NS` :
+                     exchange && /bse|bombay/i.test(exchange) ? `${symbol}.BO` :
+                     exchange && /lse|london/i.test(exchange) ? `${symbol}.L` :
+                     exchange && /euronext.*paris|epa/i.test(exchange) ? `${symbol}.PA` :
+                     exchange && /euronext.*amsterdam|ams/i.test(exchange) ? `${symbol}.AS` :
+                     symbol;
+    const yRes = await fetch(
+      `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(yahooSym)}?period1=${fromTs}&period2=${toTs}&interval=1d`
+    );
+    if (yRes.ok) {
+      const yData = await yRes.json();
+      const quotes = yData?.chart?.result?.[0]?.indicators?.quote?.[0];
+      const timestamps = yData?.chart?.result?.[0]?.timestamp;
+      if (quotes?.close && timestamps) {
+        // Find closest date to target
+        let bestIdx = -1, bestDiff = Infinity;
+        timestamps.forEach((ts: number, i: number) => {
+          const diff = Math.abs(ts - targetTs);
+          if (diff < bestDiff && quotes.close[i] != null) { bestDiff = diff; bestIdx = i; }
+        });
+        if (bestIdx >= 0) return quotes.close[bestIdx];
+      }
+    }
+  } catch {}
+
+  return null;
 }
