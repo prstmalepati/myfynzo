@@ -151,16 +151,19 @@ export default function SidebarLayout({ children }: { children: React.ReactNode 
         <div className="flex items-center justify-between">
           {!collapsed ? (
             <Link to="/dashboard" className="flex items-center gap-3.5 group">
-              <div className="w-11 h-11 rounded-xl bg-primary/15 flex items-center justify-center flex-shrink-0 group-hover:bg-primary/25 transition-colors">
+              <div className="w-[52px] h-[52px] rounded-2xl bg-gradient-to-br from-primary/25 to-teal-500/15 flex items-center justify-center flex-shrink-0 group-hover:from-primary/35 group-hover:to-teal-500/25 transition-all shadow-lg shadow-primary/10 border border-white/[0.06]">
                 <img 
                   src="/logo-transparent.png" 
                   alt="myfynzo" 
-                  className="w-9 h-9 object-contain"
+                  className="w-10 h-10 object-contain drop-shadow-sm"
                 />
               </div>
-              <span className="text-[22px] font-bold text-white tracking-tight font-display">
-                myfynzo
-              </span>
+              <div className="flex flex-col">
+                <span className="text-[24px] font-extrabold text-white tracking-tight font-display leading-none">
+                  myfynzo
+                </span>
+                <span className="text-[8px] font-semibold text-primary/70 tracking-[0.12em] uppercase mt-1">Your Wealth · Reimagined</span>
+              </div>
               {isLinkedPartner && (
                 <span className="text-[8px] font-bold bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded-full whitespace-nowrap">
                   ✓ Family Linked
@@ -169,11 +172,11 @@ export default function SidebarLayout({ children }: { children: React.ReactNode 
             </Link>
           ) : (
             <Link to="/dashboard" className="mx-auto group">
-              <div className="w-11 h-11 rounded-xl bg-primary/15 flex items-center justify-center group-hover:bg-primary/25 transition-colors">
+              <div className="w-[48px] h-[48px] rounded-2xl bg-gradient-to-br from-primary/25 to-teal-500/15 flex items-center justify-center group-hover:from-primary/35 group-hover:to-teal-500/25 transition-all shadow-lg shadow-primary/10 border border-white/[0.06]">
                 <img 
                   src="/logo-transparent.png" 
                   alt="myfynzo" 
-                  className="w-9 h-9 object-contain"
+                  className="w-9 h-9 object-contain drop-shadow-sm"
                 />
               </div>
             </Link>
@@ -221,6 +224,26 @@ export default function SidebarLayout({ children }: { children: React.ReactNode 
         {collapsed && <div className="my-2 mx-3 border-t border-white/[0.06]" />}
         {renderNavGroup(systemItems)}
       </nav>
+
+      {/* Quick Links (Blog, About, Legal) */}
+      {!collapsed && (
+        <div className="px-5 py-2.5 border-t border-white/[0.04]">
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+            {[
+              { to: '/blog', label: 'Blog' },
+              { to: '/about', label: 'About' },
+              { to: '/security', label: 'Security' },
+              { to: '/impressum', label: 'Impressum' },
+              { to: '/privacy', label: 'Privacy' },
+            ].map(l => (
+              <Link key={l.to} to={l.to}
+                className="text-[10px] text-white/20 hover:text-white/50 transition-colors">
+                {l.label}
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* User Section */}
       <div className="p-4 border-t border-white/[0.06]">

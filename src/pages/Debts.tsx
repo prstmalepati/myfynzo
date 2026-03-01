@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, forwardRef, useImperativeHandle } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useCurrency } from '../context/CurrencyContext';
 import { useLocale } from '../context/LocaleContext';
@@ -35,7 +35,7 @@ const emptyDebt: Omit<Debt, 'id'> = {
   interestRate: 0, monthlyPayment: 0, startDate: '', lender: '', notes: '',
 };
 
-export default function Debts({ embedded = false }: { embedded?: boolean }) {
+const Debts = forwardRef(function Debts({ embedded = false }: { embedded?: boolean }, ref: any) {
   const { user } = useAuth();
   const { formatAmount, currency } = useCurrency();
   const { t } = useLocale();
@@ -47,6 +47,11 @@ export default function Debts({ embedded = false }: { embedded?: boolean }) {
   const [form, setForm] = useState<Omit<Debt, 'id'>>(emptyDebt);
   const [saving, setSaving] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+
+  // Expose triggerAdd to parent via ref
+  useImperativeHandle(ref, () => ({
+    triggerAdd: () => { setEditingId(null); setForm(emptyDebt); setShowForm(true); }
+  }));
 
   useEffect(() => { if (user) loadDebts(); }, [user]);
 
@@ -132,11 +137,13 @@ export default function Debts({ embedded = false }: { embedded?: boolean }) {
             <p className="text-sm text-slate-500 mt-1">Track all debts in one place. Totals auto-sync to Wealth Projector.</p>
           </div>
         )}
+          {!embedded && (
           <button onClick={() => { setForm(emptyDebt); setEditingId(null); setShowForm(true); }}
             className="px-5 py-2.5 bg-primary text-white rounded-xl font-semibold text-sm hover:bg-primary/90 transition-all shadow-lg shadow-primary/20 flex items-center gap-2">
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
             Add Debt
           </button>
+          )}
         </div>
 
         {/* Summary Cards */}
@@ -431,4 +438,6 @@ export default function Debts({ embedded = false }: { embedded?: boolean }) {
   );
 
   return embedded ? content : <SidebarLayout>{content}</SidebarLayout>;
-}
+});
+
+export default Debts;

@@ -559,6 +559,24 @@ export default function WealthProjection() {
 
   const finalData = projectionData[projectionData.length - 1];
 
+  // ─── FIRE Milestone: When portfolio covers 25× annual expenses (4% rule) ───
+  const fireData = useMemo(() => {
+    const annualExpenses = inputs.monthlyExpenses * 12;
+    if (annualExpenses <= 0) return null;
+    const fireTarget = annualExpenses * 25; // 4% Safe Withdrawal Rate
+    const fireYear = projectionData.find(d => d.netWorth >= fireTarget);
+    const fireAge = fireYear ? (currentAge > 0 ? currentAge + fireYear.year : null) : null;
+
+    // Wealth doubling year
+    const startNw = projectionData[0]?.netWorth || 0;
+    const doubleYear = startNw > 0 ? projectionData.find(d => d.netWorth >= startNw * 2) : null;
+
+    // Debt-free year
+    const debtFreeYear = inputs.totalDebt > 0 ? projectionData.find(d => d.debt <= 0 && d.year > 0) : null;
+
+    return { fireTarget, fireYear: fireYear?.year || null, fireAge, doubleYear: doubleYear?.year || null, debtFreeYear: debtFreeYear?.year || null };
+  }, [projectionData, inputs.monthlyExpenses, currentAge, inputs.totalDebt]);
+
   // Chart dimensions
   const chartW = 700, chartH = 280, padL = 60, padR = 20, padT = 20, padB = 40;
   const plotW = chartW - padL - padR;
@@ -990,6 +1008,88 @@ export default function WealthProjection() {
                   </div>
                   <div className="text-xs text-slate-400">
                     Total wealth today: <span className="font-semibold text-secondary">{formatAmount(inputs.currentNetWorth + inputs.totalInvestments)}</span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* FIRE & Milestone Callouts */}
+            {fireData && (fireData.fireYear || fireData.doubleYear || fireData.debtFreeYear) && (
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                {fireData.fireYear && (
+                  <div className="bg-gradient-to-br from-emerald-50 to-teal-50 rounded-2xl p-4 border border-emerald-200/60">
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className="w-7 h-7 rounded-lg bg-emerald-500/15 flex items-center justify-center">
+                        <span className="text-sm">🔥</span>
+                      </div>
+                      <span className="text-[10px] font-bold text-emerald-700 uppercase tracking-wider">FIRE Number</span>
+                    </div>
+                    <div className="text-lg font-extrabold text-emerald-800">{formatAmount(fireData.fireTarget)}</div>
+                    <div className="text-xs text-emerald-600 mt-1">
+                      Reached in <strong>Year {fireData.fireYear}</strong>
+                      {fireData.fireAge && <> (age {fireData.fireAge})</>}
+                    </div>
+                    <div className="text-[10px] text-emerald-500 mt-0.5">25× annual expenses · 4% SWR</div>
+                  </div>
+                )}
+                {fireData.doubleYear && (
+                  <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl p-4 border border-blue-200/60">
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className="w-7 h-7 rounded-lg bg-blue-500/15 flex items-center justify-center">
+                        <span className="text-sm">📈</span>
+                      </div>
+                      <span className="text-[10px] font-bold text-blue-700 uppercase tracking-wider">Wealth Doubles</span>
+                    </div>
+                    <div className="text-lg font-extrabold text-blue-800">Year {fireData.doubleYear}</div>
+                    <div className="text-xs text-blue-600 mt-1">
+                      From {formatAmount(projectionData[0]?.netWorth || 0)} to {formatAmount((projectionData[0]?.netWorth || 0) * 2)}
+                    </div>
+                  </div>
+                )}
+                {fireData.debtFreeYear && (
+                  <div className="bg-gradient-to-br from-amber-50 to-orange-50 rounded-2xl p-4 border border-amber-200/60">
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className="w-7 h-7 rounded-lg bg-amber-500/15 flex items-center justify-center">
+                        <span className="text-sm">🎉</span>
+                      </div>
+                      <span className="text-[10px] font-bold text-amber-700 uppercase tracking-wider">Debt Free</span>
+                    </div>
+                    <div className="text-lg font-extrabold text-amber-800">Year {fireData.debtFreeYear}</div>
+                    <div className="text-xs text-amber-600 mt-1">
+                      {formatAmount(inputs.totalDebt)} debt eliminated
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Monte Carlo Summary (Premium) */}
+            {monteCarloData && (
+              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl border border-blue-200/60 p-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="w-6 h-6 rounded-md bg-blue-500/15 flex items-center justify-center">
+                    <svg className="w-3.5 h-3.5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 3v11.25A2.25 2.25 0 006 16.5h2.25M3.75 3h-1.5m1.5 0h16.5m0 0h1.5m-1.5 0v11.25A2.25 2.25 0 0118 16.5h-2.25m-7.5 0h7.5m-7.5 0l-1 3m8.5-3l1 3m0 0l.5 1.5m-.5-1.5h-9.5m0 0l-.5 1.5" />
+                    </svg>
+                  </div>
+                  <h3 className="text-sm font-bold text-blue-800">Monte Carlo Analysis</h3>
+                  <span className="text-[10px] text-blue-500 ml-auto">{500} simulations</span>
+                </div>
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="text-center">
+                    <div className="text-[10px] text-blue-500 uppercase tracking-wider mb-1">Pessimistic (P10)</div>
+                    <div className="text-sm font-bold text-blue-800">{formatAmount(monteCarloData[monteCarloData.length - 1]?.p10 || 0)}</div>
+                    <div className="text-[10px] text-blue-400">90% chance of exceeding</div>
+                  </div>
+                  <div className="text-center bg-blue-100/50 rounded-xl py-2">
+                    <div className="text-[10px] text-blue-600 uppercase tracking-wider mb-1 font-semibold">Most Likely (P50)</div>
+                    <div className="text-base font-extrabold text-blue-900">{formatAmount(monteCarloData[monteCarloData.length - 1]?.p50 || 0)}</div>
+                    <div className="text-[10px] text-blue-500">Median outcome</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-[10px] text-blue-500 uppercase tracking-wider mb-1">Optimistic (P90)</div>
+                    <div className="text-sm font-bold text-blue-800">{formatAmount(monteCarloData[monteCarloData.length - 1]?.p90 || 0)}</div>
+                    <div className="text-[10px] text-blue-400">Top 10% of outcomes</div>
                   </div>
                 </div>
               </div>

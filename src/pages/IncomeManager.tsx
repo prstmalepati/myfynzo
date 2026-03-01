@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, forwardRef, useImperativeHandle } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useCurrency } from '../context/CurrencyContext';
 import { usePartner } from '../context/PartnerContext';
@@ -35,13 +35,18 @@ const CATEGORIES = [
 
 const getCat = (id: string) => CATEGORIES.find(c => c.id === id) || CATEGORIES[CATEGORIES.length - 1];
 
-export default function IncomeManager({ embedded = false }: { embedded?: boolean }) {
+const IncomeManager = forwardRef(function IncomeManager({ embedded = false }: { embedded?: boolean }, ref: any) {
   const { user } = useAuth();
   const { formatAmount, currency } = useCurrency();
   const { activeProfile, profileLabel, isPartnerView, isReadOnly, partnerUid, loadPartnerDocs } = usePartner();
 
   const [items, setItems] = useState<IncomeItem[]>([]);
   const [showModal, setShowModal] = useState(false);
+
+  // Expose triggerAdd to parent via ref
+  useImperativeHandle(ref, () => ({
+    triggerAdd: () => { resetForm(); setShowModal(true); }
+  }));
   const [editingId, setEditingId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [pageLoading, setPageLoading] = useState(true);
@@ -158,7 +163,7 @@ export default function IncomeManager({ embedded = false }: { embedded?: boolean
               <p className="text-sm text-slate-500 mt-0.5">Track all income sources for accurate financial planning</p>
             </div>
           )}
-          {!isReadOnly && (
+          {!isReadOnly && !embedded && (
             <button onClick={() => { resetForm(); setShowModal(true); }}
               className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-primary to-teal-600 text-white text-sm font-semibold rounded-xl shadow-lg shadow-primary/20 hover:shadow-xl hover:-translate-y-0.5 transition-all">
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
@@ -373,4 +378,6 @@ export default function IncomeManager({ embedded = false }: { embedded?: boolean
     );
 
   return embedded ? content : <SidebarLayout>{content}</SidebarLayout>;
-}
+});
+
+export default IncomeManager;
