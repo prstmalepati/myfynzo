@@ -512,6 +512,12 @@ export default function Dashboard() {
               </span>
             </div>
           )}
+          <button onClick={() => { setLoading(true); loadData(); }} title="Refresh data"
+            className="p-2 rounded-xl border border-slate-200/60 text-slate-400 hover:text-primary hover:border-primary/20 hover:bg-primary/5 transition-all">
+            <svg className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182" />
+            </svg>
+          </button>
         </div>
 
         <PartnerToggle context="View financial overview" showHousehold />
@@ -608,7 +614,7 @@ export default function Dashboard() {
           {[
             { to: '/investments', icon: '📈', accent: 'from-emerald-500/10 to-emerald-500/5', ring: 'ring-emerald-500/10', l: 'Portfolio', v: formatAmount(aInvestments + recurringValue), d: totalGain !== 0 ? `${totalGain >= 0 ? '+' : ''}${totalGainPct.toFixed(1)}%` : `${investmentCount} assets`, dc: totalGain >= 0 ? 'text-emerald-600' : 'text-red-500' },
             { to: '/debts', icon: '💳', accent: 'from-amber-500/10 to-amber-500/5', ring: 'ring-amber-500/10', l: 'Debt', v: formatAmount(totalDebt), d: debtCount > 0 ? `${debtCount} active` : 'None', dc: totalDebt === 0 ? 'text-emerald-600' : 'text-slate-400' },
-            { to: '/goal-tracker', icon: '🎯', accent: 'from-blue-500/10 to-blue-500/5', ring: 'ring-blue-500/10', l: 'Goals', v: `${goalCount} Active`, d: goalsOnTrack > 0 ? `${goalsOnTrack} on track` : goalCount > 0 ? `${goalProgress.toFixed(0)}%` : 'Set one', dc: 'text-blue-600' },
+            { to: '/goals', icon: '🎯', accent: 'from-blue-500/10 to-blue-500/5', ring: 'ring-blue-500/10', l: 'Goals', v: `${goalCount} Active`, d: goalsOnTrack > 0 ? `${goalsOnTrack} on track` : goalCount > 0 ? `${goalProgress.toFixed(0)}%` : 'Set one', dc: 'text-blue-600' },
             { to: '/wealth-projection', icon: '🔮', accent: 'from-violet-500/10 to-violet-500/5', ring: 'ring-violet-500/10', l: 'Projected', v: formatAmount(projectedValue), d: `in ${projYears} years`, dc: 'text-slate-400' },
           ].map(s => (
             <Link key={s.to} to={s.to} className={`group relative p-4 bg-white rounded-2xl border border-slate-200/60 shadow-sm hover:shadow-md hover:border-slate-300/60 transition-all duration-200`}>

@@ -102,7 +102,8 @@ export default function App() {
                       <Route path="/income" element={<Navigate to="/income-debts" replace />} />
                       <Route path="/anti-portfolio" element={<Navigate to="/financial-lab" replace />} />
                       <Route path="/scenario-branching" element={<Navigate to="/financial-lab" replace />} />
-                      <Route path="/goal-tracker" element={<Navigate to="/financial-lab" replace />} />
+                      <Route path="/goal-tracker" element={<Navigate to="/goals" replace />} />
+                      <Route path="/goals" element={<CountryGate mode="page"><ProtectedRoute><PremiumRoute feature="Goals"><GoalTracker /></PremiumRoute></ProtectedRoute></CountryGate>} />
                       <Route path="/financial-lab" element={<CountryGate mode="page"><ProtectedRoute><PremiumRoute feature="Financial Lab"><FinancialLab /></PremiumRoute></ProtectedRoute></CountryGate>} />
                       <Route path="/calculators" element={<CountryGate mode="page"><ProtectedRoute><Calculators /></ProtectedRoute></CountryGate>} />
                       <Route path="/settings" element={<CountryGate mode="page"><ProtectedRoute><Settings /></ProtectedRoute></CountryGate>} />

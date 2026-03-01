@@ -1,12 +1,10 @@
 import { useState } from 'react';
 import SidebarLayout from '../components/SidebarLayout';
-import GoalTracker from './GoalTracker';
 import ScenarioBranching from './ScenarioBranching';
 import AntiPortfolio from './AntiPortfolio';
 import { usePageTitle } from '../hooks/usePageTitle';
 
 const TABS = [
-  { id: 'goals', label: 'Goal Tracker', icon: '🎯' },
   { id: 'scenarios', label: 'Scenarios', icon: '🔀' },
   { id: 'anti', label: 'Anti-Portfolio', icon: '⚠️' },
 ] as const;
@@ -14,7 +12,7 @@ const TABS = [
 type TabId = typeof TABS[number]['id'];
 
 export default function FinancialLab() {
-  const [tab, setTab] = useState<TabId>('goals');
+  const [tab, setTab] = useState<TabId>('scenarios');
   usePageTitle('Financial Lab');
 
   return (
@@ -23,7 +21,7 @@ export default function FinancialLab() {
         {/* Header */}
         <div className="mb-6 animate-fadeIn">
           <h1 className="text-2xl lg:text-3xl font-bold text-secondary font-display">Financial Lab</h1>
-          <p className="text-sm text-slate-500 mt-1">Experiment with goals, scenarios, and track avoided investments</p>
+          <p className="text-sm text-slate-500 mt-1">Experiment with scenarios and track avoided investments</p>
         </div>
 
         {/* Tabs */}
@@ -45,7 +43,6 @@ export default function FinancialLab() {
         </div>
 
         {/* Tab Content */}
-        {tab === 'goals' && <GoalTracker embedded />}
         {tab === 'scenarios' && <ScenarioBranching embedded />}
         {tab === 'anti' && <AntiPortfolio embedded />}
       </div>
